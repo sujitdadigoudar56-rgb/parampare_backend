@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import appRouter from './routes';
 
-export const app: Application = express();
+const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -80,3 +80,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+export default app;

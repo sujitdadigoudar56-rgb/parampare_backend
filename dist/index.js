@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.app = void 0;
 // IMPORTANT: dotenv must load BEFORE any other import that reads process.env
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
@@ -11,28 +10,28 @@ const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const cors_1 = __importDefault(require("cors"));
 const routes_1 = __importDefault(require("./routes"));
-exports.app = (0, express_1.default)();
+const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Middleware
-exports.app.use((0, cors_1.default)({
+app.use((0, cors_1.default)({
     origin: ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:8080', 'http://127.0.0.1:5173'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
 }));
-exports.app.use(express_1.default.json());
-exports.app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
 // Serve locally uploaded product images
 const path_1 = __importDefault(require("path"));
-exports.app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
+app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // Routes
-exports.app.use('/api', routes_1.default);
+app.use('/api', routes_1.default);
 // Health check endpoint
-exports.app.get('/health', (req, res) => {
+app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 // Error handling middleware
-exports.app.use((err, req, res, next) => {
+app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({
         success: false,
@@ -54,7 +53,7 @@ const startServer = async () => {
                 tlsAllowInvalidCertificates: true, // Allow self-signed certs (proxies)
             });
             console.log('Connected to MongoDB');
-            exports.app.listen(PORT, () => {
+            app.listen(PORT, () => {
                 console.log(`Server is running on port ${PORT}`);
             });
         }
@@ -76,3 +75,4 @@ const startServer = async () => {
     tryConnect();
 };
 startServer();
+exports.default = app;
