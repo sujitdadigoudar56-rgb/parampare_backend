@@ -32,6 +32,15 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
+// Root endpoint for deployment verification
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({ 
+    message: 'Welcome to Parampara API',
+    health: '/health',
+    api: '/api'
+  });
+});
+
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
