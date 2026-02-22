@@ -1,6 +1,39 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleWishlist = exports.getWishlist = exports.deleteAddress = exports.updateAddress = exports.addAddress = exports.getAddresses = exports.getProfile = void 0;
+exports.toggleWishlist = exports.getWishlist = exports.deleteAddress = exports.updateAddress = exports.addAddress = exports.getAddresses = exports.updateProfile = exports.getProfile = void 0;
 const user_service_1 = require("./user.service");
 const auth_service_1 = require("../auth/auth.service");
 const http_constants_1 = require("../../shared/constants/http.constants");
@@ -17,6 +50,21 @@ const getProfile = async (req, res, next) => {
     }
 };
 exports.getProfile = getProfile;
+// @desc    Update user profile
+// @route   PATCH /api/user/profile
+// @access  Private
+const updateProfile = async (req, res, next) => {
+    try {
+        const { fullName, email } = req.body;
+        const User = (await Promise.resolve().then(() => __importStar(require('../user/user.model')))).default;
+        const updated = await User.findByIdAndUpdate(req.user._id.toString(), { $set: { fullName, email } }, { new: true, runValidators: true }).select('-password');
+        res.status(http_constants_1.HTTP_STATUS.OK).json({ success: true, data: updated });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.updateProfile = updateProfile;
 // @desc    Get saved addresses
 // @route   GET /api/user/addresses
 // @access  Private

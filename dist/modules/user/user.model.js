@@ -57,6 +57,11 @@ const userSchema = new mongoose_1.Schema({
         ],
         sparse: true,
     },
+    countryCode: {
+        type: String,
+        default: '+91',
+        trim: true,
+    },
     mobile: {
         type: String,
         required: [false, 'Please provide your mobile number'], // Optional now to allow email-only register
@@ -82,6 +87,10 @@ const userSchema = new mongoose_1.Schema({
     otpExpires: {
         type: Date,
         select: false,
+    },
+    isActive: {
+        type: Boolean,
+        default: true,
     },
 }, {
     timestamps: true,

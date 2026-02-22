@@ -34,85 +34,35 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const productSchema = new mongoose_1.Schema({
+const categorySchema = new mongoose_1.Schema({
     name: {
         type: String,
-        required: [true, 'Please provide a product name'],
+        required: [true, 'Please provide a category name'],
         trim: true,
-        maxlength: [200, 'Name cannot be more than 200 characters'],
+        unique: true,
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
     },
     description: {
         type: String,
-        required: [true, 'Please provide a product description'],
     },
-    price: {
-        type: Number,
-        required: [true, 'Please provide a product price'],
-        min: [0, 'Price must be positive'],
-    },
-    originalPrice: {
-        type: Number,
-    },
-    images: {
-        type: [String],
-        default: [],
-    },
-    category: {
+    parent: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Category',
-        required: [true, 'Please provide a product category'],
-        index: true,
+        default: null,
     },
-    subcategory: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Category',
-        index: true,
-    },
-    attributes: {
-        type: mongoose_1.Schema.Types.Mixed,
-        default: {},
-    },
-    fabric: { type: String },
-    color: { type: String },
-    occasion: { type: String },
-    weave: { type: String },
-    border: { type: String },
-    pallu: { type: String },
-    blouse: { type: String },
-    careInstructions: {
-        type: [String],
-        default: [],
-    },
-    inStock: {
-        type: Boolean,
-        default: true,
-    },
-    stockQuantity: {
-        type: Number,
-        required: [true, 'Please provide stock quantity'],
-        min: 0,
-    },
-    rating: {
+    level: {
         type: Number,
         default: 0,
-    },
-    reviewCount: {
-        type: Number,
-        default: 0,
-    },
-    badges: {
-        type: [String],
-        default: [],
-    },
-    deliveryTimeDays: {
-        type: String,
-        default: "5-7",
     },
 }, {
     timestamps: true,
 });
-// Indexes for common filters
-productSchema.index({ price: 1 });
-productSchema.index({ rating: -1 });
-const Product = mongoose_1.default.model('Product', productSchema);
-exports.default = Product;
+// Pre-save hook to generate slug if not provided? 
+// For now, assume it's provided or handle in service.
+const Category = mongoose_1.default.model('Category', categorySchema);
+exports.default = Category;

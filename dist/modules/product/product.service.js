@@ -13,11 +13,14 @@ class ProductService {
     }
     // Get all products (with advanced filters & pagination)
     async findAll(query) {
-        const { category, minPrice, maxPrice, sort, page = 1, limit = 10, search } = query;
+        const { category, subcategory, minPrice, maxPrice, sort, page = 1, limit = 10, search, fabric, occasion, color, weave, border, pallu } = query;
         // Build filter object
         const filter = {};
-        if (category) {
+        if (category && category !== 'All Sarees') {
             filter.category = category;
+        }
+        if (subcategory) {
+            filter.subcategory = subcategory;
         }
         if (minPrice !== undefined || maxPrice !== undefined) {
             filter.price = {};
@@ -29,6 +32,19 @@ class ProductService {
         if (search) {
             filter.name = { $regex: search, $options: 'i' };
         }
+        // Add additional filters
+        if (fabric)
+            filter.fabric = fabric;
+        if (occasion)
+            filter.occasion = occasion;
+        if (color)
+            filter.color = color;
+        if (weave)
+            filter.weave = weave;
+        if (border)
+            filter.border = border;
+        if (pallu)
+            filter.pallu = pallu;
         // Sort logic
         let sortOption = { createdAt: -1 }; // Default: Newest first
         if (sort) {
@@ -47,6 +63,7 @@ class ProductService {
         const skip = (pageNum - 1) * limitNum;
         const count = await product_model_1.default.countDocuments(filter);
         const products = await product_model_1.default.find(filter)
+            .populate('category subcategory')
             .sort(sortOption)
             .skip(skip)
             .limit(limitNum);
@@ -84,10 +101,6 @@ class ProductService {
     // Delete product
     async deleteProduct(id) {
         return await product_model_1.default.findByIdAndDelete(id);
-    }
-    // Get Categories
-    async getCategories() {
-        return await product_model_1.default.distinct('category');
     }
 }
 exports.ProductService = ProductService;

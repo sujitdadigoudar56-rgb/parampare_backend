@@ -35,51 +35,48 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const orderSchema = new mongoose_1.Schema({
-    user: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-    },
+    orderId: { type: String, unique: true },
+    user: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     items: [
         {
-            product: {
-                type: mongoose_1.Schema.Types.ObjectId,
-                ref: 'Product',
-                required: true,
-            },
-            quantity: {
-                type: Number,
-                required: true,
-                min: 1,
-            },
-            price: {
-                type: Number,
-                required: true,
-            },
+            product: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Product' },
+            name: { type: String, required: true },
+            image: { type: String, default: '' },
+            quantity: { type: Number, required: true, min: 1 },
+            price: { type: Number, required: true },
         },
     ],
-    totalAmount: {
-        type: Number,
-        required: true,
-    },
+    subtotal: { type: Number, required: true },
+    deliveryCharge: { type: Number, default: 0 },
+    totalAmount: { type: Number, required: true },
     status: {
         type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
-        default: 'pending',
+        enum: ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'],
+        default: 'Order Confirmed',
     },
-    paymentInfo: {
-        method: { type: String, default: 'card' },
-        status: { type: String, default: 'pending' },
-        transactionId: String,
-    },
+    paymentMethod: { type: String, default: 'Pay on Delivery' },
     shippingAddress: {
-        address: { type: String, required: true },
+        fullName: { type: String, required: true },
+        mobile: { type: String, required: true },
+        house: { type: String, required: true },
+        street: { type: String, required: true },
         city: { type: String, required: true },
-        postalCode: { type: String, required: true },
-        country: { type: String, required: true },
+        state: { type: String, required: true },
+        pincode: { type: String, required: true },
+        landmark: { type: String, required: true },
+        alternatePhone: { type: String },
     },
-}, {
-    timestamps: true,
+    estimatedDelivery: { type: Date },
+    trackingNumber: { type: String },
+}, { timestamps: true });
+// Auto-generate orderId before save
+orderSchema.pre('save', function (next) {
+    if (!this.orderId) {
+        const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const rand = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+        this.orderId = `PAR-ORD-${date}-${rand}`;
+    }
+    next();
 });
-const Order = mongoose_1.default.model('Order', orderSchema);
+const Order = (mongoose_1.default.models['Order'] || mongoose_1.default.model('Order', orderSchema));
 exports.default = Order;

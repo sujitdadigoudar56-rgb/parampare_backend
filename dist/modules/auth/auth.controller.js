@@ -46,17 +46,12 @@ exports.login = login;
 // @access  Public
 const sendOtp = async (req, res, next) => {
     try {
-        let { identifier, type, phoneNumber } = req.body; // type: 'login' | 'register'
-        // Support legacy "phoneNumber" field
-        if (!identifier && phoneNumber) {
-            identifier = phoneNumber;
+        let { mobile, type } = req.body; // type: 'login' | 'register'
+        // Validation should be done by middleware (Joi)
+        if (!mobile) {
+            return res.status(http_constants_1.HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Mobile number is required' });
         }
-        // Validation should be done by middleware (Joi), but basic check here
-        if (!identifier) {
-            return res.status(http_constants_1.HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Identifier (or phoneNumber) is required' });
-        }
-        // Pass identifier to service
-        const message = await auth_service_1.authService.generateOtp(identifier);
+        const message = await auth_service_1.authService.generateOtp(mobile);
         res.status(http_constants_1.HTTP_STATUS.OK).json({
             success: true,
             message,
@@ -72,11 +67,11 @@ exports.sendOtp = sendOtp;
 // @access  Public
 const verifyOtp = async (req, res, next) => {
     try {
-        const { identifier, otp, userData } = req.body;
+        const { mobile, otp, userData } = req.body;
         // Simple logic: If userData is provided, treating as Intent to Register.
         // If NOT provided, treating as Intent to Login.
         const isLogin = !userData;
-        const result = await auth_service_1.authService.verifyOtp(identifier, otp, isLogin, userData);
+        const result = await auth_service_1.authService.verifyOtp(mobile, otp, isLogin, userData);
         res.status(http_constants_1.HTTP_STATUS.OK).json({
             success: true,
             ...result,

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getCategories = exports.getProduct = exports.getProducts = void 0;
+exports.deleteProduct = exports.updateProduct = exports.createProduct = exports.getProduct = exports.getProducts = void 0;
 const product_service_1 = require("./product.service");
 const http_constants_1 = require("../../shared/constants/http.constants");
 // @desc    Get all products (with filters)
@@ -41,22 +41,6 @@ const getProduct = async (req, res, next) => {
     }
 };
 exports.getProduct = getProduct;
-// @desc    Get categories
-// @route   GET /api/categories
-// @access  Public
-const getCategories = async (req, res, next) => {
-    try {
-        const categories = await product_service_1.productService.getCategories();
-        res.status(http_constants_1.HTTP_STATUS.OK).json({
-            success: true,
-            data: categories
-        });
-    }
-    catch (error) {
-        next(error);
-    }
-};
-exports.getCategories = getCategories;
 // @desc    Create new product
 // @route   POST /api/products
 // @access  Private/Admin
