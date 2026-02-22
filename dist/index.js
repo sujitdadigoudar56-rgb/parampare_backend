@@ -67,8 +67,7 @@ const startServer = async () => {
                 setTimeout(() => tryConnect(retries - 1, delay), delay);
             }
             else {
-                console.error('Could not connect to MongoDB after multiple attempts. Exiting.');
-                process.exit(1);
+                console.error('Could not connect to MongoDB after multiple attempts. Server will remain active but database operations will fail.');
             }
         }
     };
