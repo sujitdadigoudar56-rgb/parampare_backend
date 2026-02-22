@@ -15,6 +15,24 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
     }
 };
 
+// @desc    Update user profile
+// @route   PATCH /api/user/profile
+// @access  Private
+export const updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { fullName, email } = req.body;
+        const User = (await import('../user/user.model')).default;
+        const updated = await User.findByIdAndUpdate(
+            req.user!._id.toString(),
+            { $set: { fullName, email } },
+            { new: true, runValidators: true }
+        ).select('-password');
+        res.status(HTTP_STATUS.OK).json({ success: true, data: updated });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get saved addresses
 // @route   GET /api/user/addresses
 // @access  Private

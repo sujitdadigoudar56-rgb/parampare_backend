@@ -6,8 +6,18 @@ export interface IProduct extends Document {
   price: number;
   originalPrice?: number;
   images: string[];
-  category: string;
+  category: mongoose.Types.ObjectId;
+  subcategory?: mongoose.Types.ObjectId;
   attributes: Record<string, any>;
+  // Saree specific attributes
+  fabric?: string;
+  color?: string;
+  occasion?: string;
+  weave?: string;
+  border?: string;
+  pallu?: string;
+  blouse?: string;
+  careInstructions: string[];
   inStock: boolean;
   stockQuantity: number;
   rating: number;
@@ -43,13 +53,30 @@ const productSchema = new Schema(
       default: [],
     },
     category: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
       required: [true, 'Please provide a product category'],
+      index: true,
+    },
+    subcategory: {
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
       index: true,
     },
     attributes: {
       type: Schema.Types.Mixed,
       default: {},
+    },
+    fabric: { type: String },
+    color: { type: String },
+    occasion: { type: String },
+    weave: { type: String },
+    border: { type: String },
+    pallu: { type: String },
+    blouse: { type: String },
+    careInstructions: {
+      type: [String],
+      default: [],
     },
     inStock: {
       type: Boolean,

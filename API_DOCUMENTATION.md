@@ -79,20 +79,29 @@ This document provides the request payloads (JSON bodies) and endpoints for test
 **Body (JSON):**
 ```json
 {
-  "name": "Banarasi Silk Saree",
-  "description": "Elegant red Banarasi silk saree with gold zari work.",
-  "price": 5000,
+  "name": "Authentic Ilkal Saree – Teni Pallu Red",
+  "description": "Authentic handloom Ilkal Saree from Karnataka featuring the traditional Teni Pallu in red. Perfect for festive occasions and weddings.",
+  "price": 2999,
+  "originalPrice": 4499,
   "category": "Sarees",
-  "stockQuantity": 50,
   "images": [
-    "https://example.com/saree1.jpg",
-    "https://example.com/saree2.jpg"
+    "https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1587&auto=format&fit=crop"
   ],
-  "attributes": {
-    "color": "Red",
-    "fabric": "Silk"
-  },
-  "badges": ["Bestseller", "New"],
+  "fabric": "pure-cotton",
+  "color": "red",
+  "occasion": "festive",
+  "weave": "ilkal-traditional",
+  "border": "zari",
+  "pallu": "tope-teni",
+  "blouse": "running",
+  "careInstructions": [
+    "Hand wash recommended",
+    "Use mild detergent",
+    "Dry in shade",
+    "Iron on medium heat"
+  ],
+  "stockQuantity": 50,
+  "badges": ["Best Seller", "GI Certified"],
   "deliveryTimeDays": "5-7"
 }
 ```

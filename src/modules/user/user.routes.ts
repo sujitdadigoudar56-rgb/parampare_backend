@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getProfile,
+  updateProfile,
   getAddresses,
   addAddress,
   updateAddress,
@@ -15,6 +16,7 @@ const router = Router();
 router.use(protect as any); // All routes private
 
 router.get('/profile', getProfile as any);
+router.patch('/profile', updateProfile as any);
 
 router.route('/addresses')
   .get(getAddresses as any)

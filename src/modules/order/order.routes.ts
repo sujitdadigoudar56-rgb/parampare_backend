@@ -1,30 +1,14 @@
 import { Router } from 'express';
-import {
-  createOrder,
-  getOrders,
-  getOrderById,
-  cancelOrder,
-  getAllOrders,     // Admin
-  updateOrderStatus // Admin
-} from './order.controller';
-import { protect } from '../../core/middleware/auth.middleware';
+import { createOrder, getMyOrders, getOrderById, getAllOrders, updateOrderStatus } from './order.controller';
+import { protect, admin } from '../../core/middleware/auth.middleware';
 
 const router = Router();
 
-router.use(protect as any); // All order routes are protected
-
-// User: Create Order, Get History
-router.route('/')
-  .post(createOrder as any)
-  .get(getOrders as any); 
-
-// Admin routes (hidden/protected further in real app)
-router.get('/admin/all', getAllOrders as any);
-router.patch('/:id/status', updateOrderStatus as any);
-
-router.route('/:id')
-  .get(getOrderById as any);
-
-router.put('/:id/cancel', cancelOrder as any);
+// User routes
+router.post('/', protect as any, createOrder as any);
+router.get('/my', protect as any, getMyOrders as any);
+router.get('/admin/all', protect as any, admin as any, getAllOrders as any);
+router.get('/:id', protect as any, getOrderById as any);
+router.patch('/:id/status', protect as any, admin as any, updateOrderStatus as any);
 
 export default router;

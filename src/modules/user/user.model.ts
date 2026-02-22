@@ -10,6 +10,7 @@ export interface IUser extends Document {
   role: 'USER' | 'ADMIN';
   otp?: string;
   otpExpires?: Date;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -65,6 +66,10 @@ const userSchema: Schema = new Schema(
     otpExpires: {
       type: Date,
       select: false,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {

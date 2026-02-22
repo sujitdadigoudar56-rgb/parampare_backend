@@ -38,20 +38,6 @@ export const getProduct = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-// @desc    Get categories
-// @route   GET /api/categories
-// @access  Public
-export const getCategories = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const categories = await productService.getCategories();
-        res.status(HTTP_STATUS.OK).json({
-            success: true,
-            data: categories
-        });
-    } catch (error) {
-        next(error);
-    }
-}
 
 // @desc    Create new product
 // @route   POST /api/products

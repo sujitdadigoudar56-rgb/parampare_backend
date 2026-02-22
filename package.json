@@ -18,6 +18,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.995.0",
+    "@aws-sdk/lib-storage": "^3.995.0",
     "@types/joi": "^17.2.2",
     "@types/mongoose": "^5.11.96",
     "bcryptjs": "^3.0.3",
@@ -27,6 +29,8 @@
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.21.0",
+    "multer": "^2.0.2",
+    "multer-s3": "^3.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
@@ -35,6 +39,8 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/multer-s3": "^3.0.3",
     "@types/node": "^25.0.6",
     "nodemon": "^3.1.11"
   }

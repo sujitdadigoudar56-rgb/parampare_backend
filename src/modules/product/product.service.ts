@@ -9,12 +9,29 @@ export class ProductService {
 
   // Get all products (with advanced filters & pagination)
   async findAll(query: any): Promise<{ products: IProduct[]; count: number; totalPages: number; currentPage: number }> {
-    const { category, minPrice, maxPrice, sort, page = 1, limit = 10, search } = query;
-
-    // Build filter object
+    const { 
+      category, 
+      subcategory,
+      minPrice, 
+      maxPrice, 
+      sort, 
+      page = 1, 
+      limit = 10, 
+      search,
+      fabric,
+      occasion,
+      color,
+      weave,
+      border,
+      pallu 
+    } = query;
+// Build filter object
     const filter: any = {};
-    if (category) {
+    if (category && category !== 'All Sarees') {
       filter.category = category;
+    }
+    if (subcategory) {
+      filter.subcategory = subcategory;
     }
     if (minPrice !== undefined || maxPrice !== undefined) {
       filter.price = {};
@@ -24,6 +41,14 @@ export class ProductService {
     if (search) {
         filter.name = { $regex: search, $options: 'i' };
     }
+    
+    // Add additional filters
+    if (fabric) filter.fabric = fabric;
+    if (occasion) filter.occasion = occasion;
+    if (color) filter.color = color;
+    if (weave) filter.weave = weave;
+    if (border) filter.border = border;
+    if (pallu) filter.pallu = pallu;
     
     // Sort logic
     let sortOption: any = { createdAt: -1 }; // Default: Newest first
@@ -41,6 +66,7 @@ export class ProductService {
 
     const count = await Product.countDocuments(filter);
     const products = await Product.find(filter)
+      .populate('category subcategory')
       .sort(sortOption)
       .skip(skip)
       .limit(limitNum);
@@ -83,11 +109,6 @@ export class ProductService {
   // Delete product
   async deleteProduct(id: string): Promise<IProduct | null> {
     return await Product.findByIdAndDelete(id);
-  }
-
-  // Get Categories
-  async getCategories(): Promise<string[]> {
-      return await Product.distinct('category');
   }
 }
 

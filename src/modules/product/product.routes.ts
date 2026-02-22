@@ -6,18 +6,17 @@ import {
   updateProduct,
   deleteProduct,
 } from './product.controller';
-import { protect } from '../../core/middleware/auth.middleware';
-// import { admin } from '../../core/middleware/auth.middleware'; // TODO: Implement admin middleware
+import { protect, admin } from '../../core/middleware/auth.middleware';
 
 const router = Router();
 
 router.route('/')
   .get(getProducts)
-  .post(protect as any, createProduct); // Add admin check later
+  .post(protect as any, admin as any, createProduct); 
 
 router.route('/:id')
   .get(getProduct)
-  .put(protect as any, updateProduct) // Add admin check later
-  .delete(protect as any, deleteProduct); // Add admin check later
+  .put(protect as any, admin as any, updateProduct) 
+  .delete(protect as any, admin as any, deleteProduct); 
 
 export default router;
