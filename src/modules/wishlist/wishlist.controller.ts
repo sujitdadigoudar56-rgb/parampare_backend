@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { wishlistService } from './wishlist.service';
 import { HTTP_STATUS } from '../../shared/constants/http.constants';
 
@@ -12,7 +13,9 @@ export const getWishlist = async (req: Request, res: Response, next: NextFunctio
 export const addToWishlist = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { productId } = req.body;
-    if (!productId) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'productId required' });
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Valid productId required' });
+    }
     const items = await wishlistService.addToWishlist((req as any).user.id, productId);
     res.status(HTTP_STATUS.OK).json({ success: true, data: items });
   } catch (error) { next(error); }
@@ -21,7 +24,9 @@ export const addToWishlist = async (req: Request, res: Response, next: NextFunct
 export const removeFromWishlist = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { productId } = req.body;
-    if (!productId) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'productId required' });
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Valid productId required' });
+    }
     const items = await wishlistService.removeFromWishlist((req as any).user.id, productId);
     res.status(HTTP_STATUS.OK).json({ success: true, data: items });
   } catch (error) { next(error); }
@@ -30,7 +35,9 @@ export const removeFromWishlist = async (req: Request, res: Response, next: Next
 export const toggleWishlist = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { productId } = req.body;
-    if (!productId) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'productId required' });
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Valid productId required' });
+    }
     const result = await wishlistService.toggleWishlist((req as any).user.id, productId);
     res.status(HTTP_STATUS.OK).json({ success: true, ...result });
   } catch (error) { next(error); }

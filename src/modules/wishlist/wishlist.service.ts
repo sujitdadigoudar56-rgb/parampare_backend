@@ -3,7 +3,9 @@ import Wishlist from './wishlist.model';
 export class WishlistService {
   async getWishlist(userId: string) {
     const wishlist = await Wishlist.findOne({ user: userId }).populate('items.product');
-    return wishlist?.items || [];
+    if (!wishlist) return [];
+    // Filter out items where product no longer exists in DB
+    return wishlist.items.filter((i: any) => i.product);
   }
 
   async addToWishlist(userId: string, productId: string) {
@@ -11,20 +13,22 @@ export class WishlistService {
     if (!wishlist) {
       wishlist = await Wishlist.create({ user: userId, items: [] });
     }
-    const already = wishlist.items.some((i: any) => i.product.toString() === productId);
+    const already = wishlist.items.some((i: any) => i.product && i.product.toString() === productId);
     if (!already) {
       wishlist.items.push({ product: productId } as any);
       await wishlist.save();
     }
-    return (await wishlist.populate('items.product')).items;
+    const populated = await wishlist.populate('items.product');
+    return populated.items.filter((i: any) => i.product);
   }
 
   async removeFromWishlist(userId: string, productId: string) {
     const wishlist = await Wishlist.findOne({ user: userId });
     if (!wishlist) return [];
-    wishlist.items = wishlist.items.filter((i: any) => i.product.toString() !== productId);
+    wishlist.items = wishlist.items.filter((i: any) => i.product && i.product.toString() !== productId);
     await wishlist.save();
-    return (await wishlist.populate('items.product')).items;
+    const populated = await wishlist.populate('items.product');
+    return populated.items.filter((i: any) => i.product);
   }
 
   async toggleWishlist(userId: string, productId: string) {
@@ -32,15 +36,17 @@ export class WishlistService {
     if (!wishlist) {
       wishlist = await Wishlist.create({ user: userId, items: [] });
     }
-    const idx = wishlist.items.findIndex((i: any) => i.product.toString() === productId);
+    const idx = wishlist.items.findIndex((i: any) => i.product && i.product.toString() === productId);
     if (idx > -1) {
       wishlist.items.splice(idx, 1);
       await wishlist.save();
-      return { added: false, items: (await wishlist.populate('items.product')).items };
+      const populated = await wishlist.populate('items.product');
+      return { added: false, items: populated.items.filter((i: any) => i.product) };
     } else {
       wishlist.items.push({ product: productId } as any);
       await wishlist.save();
-      return { added: true, items: (await wishlist.populate('items.product')).items };
+      const populated = await wishlist.populate('items.product');
+      return { added: true, items: populated.items.filter((i: any) => i.product) };
     }
   }
 }

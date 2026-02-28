@@ -7,6 +7,8 @@ import userRoutes from '../modules/user/user.routes';
 import cartRoutes from '../modules/cart/cart.routes';
 import adminRoutes from '../modules/admin/admin.routes';
 import wishlistRoutes from '../modules/wishlist/wishlist.routes';
+import paymentRoutes from '../modules/payment/payment.routes';
+
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -17,5 +19,6 @@ router.use('/cart', cartRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/admin', adminRoutes);
 router.use('/wishlist', wishlistRoutes);
+router.use('/payment', paymentRoutes);
 
 export default router;
