@@ -17,7 +17,10 @@ const razorpay = new razorpay_1.default({
 // @access  Private
 const createRazorpayOrder = async (req, res, next) => {
     try {
-        const { amount, currency = 'INR', receipt, orderId } = req.body;
+        // Supporting both dbOrderId and orderId aliases from client
+        const { amount, currency = 'INR', receipt, orderId, dbOrderId } = req.body;
+        const mongoOrderId = orderId || dbOrderId;
+        console.log(`Creating Razorpay order. Amount: ${amount}, Mongo Order ID: ${mongoOrderId}`);
         if (!amount) {
             return res.status(http_constants_1.HTTP_STATUS.BAD_REQUEST).json({
                 success: false,
@@ -27,21 +30,30 @@ const createRazorpayOrder = async (req, res, next) => {
         const options = {
             amount: amount * 100, // amount in the smallest currency unit (paise for INR)
             currency,
-            receipt: orderId || receipt || `receipt_${Date.now()}`,
+            receipt: mongoOrderId || receipt || `receipt_${Date.now()}`,
         };
-        const order = await razorpay.orders.create(options);
-        // If orderId (Mongo ID) is provided, update the order in database with razorpayOrderId immediately
-        if (orderId) {
-            await order_model_1.default.findByIdAndUpdate(orderId, {
-                razorpayOrderId: order.id,
-            });
+        const rzpOrder = await razorpay.orders.create(options);
+        console.log(`Razorpay order created: ${rzpOrder.id}`);
+        // If mongoOrderId (Mongo ID) is provided, update the order in database with razorpayOrderId immediately
+        if (mongoOrderId && mongoOrderId.match(/^[0-9a-fA-F]{24}$/)) {
+            console.log(`Attempting to link Razorpay Order ${rzpOrder.id} to Mongo Order ${mongoOrderId}`);
+            const updatedOrder = await order_model_1.default.findByIdAndUpdate(mongoOrderId, {
+                razorpayOrderId: rzpOrder.id,
+            }, { new: true });
+            if (updatedOrder) {
+                console.log(`Successfully linked Razorpay Order to Mongo Order ${mongoOrderId}`);
+            }
+            else {
+                console.warn(`Could not find Mongo Order ${mongoOrderId} to link Razorpay Order`);
+            }
         }
         res.status(http_constants_1.HTTP_STATUS.OK).json({
             success: true,
-            data: order,
+            data: rzpOrder,
         });
     }
     catch (error) {
+        console.error('Error in createRazorpayOrder:', error);
         next(error);
     }
 };
@@ -52,6 +64,7 @@ exports.createRazorpayOrder = createRazorpayOrder;
 const verifyPayment = async (req, res, next) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        console.log(`Verifying payment for Razorpay Order ID: ${razorpay_order_id}`);
         const body = razorpay_order_id + "|" + razorpay_payment_id;
         const expectedSignature = crypto_1.default
             .createHmac("sha256", process.env.RAZORPAY_SECRATE)
@@ -59,6 +72,7 @@ const verifyPayment = async (req, res, next) => {
             .digest("hex");
         const isAuthentic = expectedSignature === razorpay_signature;
         if (isAuthentic) {
+            console.log('Payment signature is authentic');
             // Fetch the full payment object from Razorpay
             let razorpayFullResponse = req.body;
             try {
@@ -70,13 +84,16 @@ const verifyPayment = async (req, res, next) => {
             catch (fetchError) {
                 console.error('Error fetching Razorpay payment details:', fetchError);
             }
-            // Find the order by razorpay_order_id
+            // Primary Lookup Strategy: Find by razorpayOrderId
+            console.log(`Primary Strategy: Looking up by razorpayOrderId: ${razorpay_order_id}`);
             let order = await order_model_1.default.findOne({ razorpayOrderId: razorpay_order_id });
-            // Fallback: If order not found by razorpayOrderId, fetch Razorpay order details to get 'receipt' (Mongo Order ID)
+            // Fallback Strategy: Fetch Razorpay order details to get 'receipt' (Mongo Order ID)
             if (!order) {
+                console.log(`Fallback Strategy: Fetching Razorpay order to get receipt fallback`);
                 try {
                     const rzOrder = await razorpay.orders.fetch(razorpay_order_id);
                     if (rzOrder && rzOrder.receipt && rzOrder.receipt.match(/^[0-9a-fA-F]{24}$/)) {
+                        console.log(`Found receipt in Razorpay order: ${rzOrder.receipt}`);
                         order = await order_model_1.default.findById(rzOrder.receipt);
                     }
                 }
@@ -85,11 +102,13 @@ const verifyPayment = async (req, res, next) => {
                 }
             }
             if (!order) {
+                console.error(`Order not found for Razorpay Order ID: ${razorpay_order_id}`);
                 return res.status(http_constants_1.HTTP_STATUS.NOT_FOUND).json({
                     success: false,
                     message: "Order not found in database",
                 });
             }
+            console.log(`Order found: ${order._id}. Updating status to Paid.`);
             // Update order with payment details
             order.razorpayOrderId = razorpay_order_id;
             order.razorpayPaymentId = razorpay_payment_id;
@@ -104,7 +123,8 @@ const verifyPayment = async (req, res, next) => {
             });
         }
         else {
-            // Payment failed verification
+            console.warn('Payment signature verification failed');
+            // Payment failed verification - try to find order to mark as failed
             const order = await order_model_1.default.findOne({ razorpayOrderId: razorpay_order_id });
             if (order) {
                 order.paymentStatus = 'Failed';
@@ -117,6 +137,7 @@ const verifyPayment = async (req, res, next) => {
         }
     }
     catch (error) {
+        console.error('Unexpected error in verifyPayment:', error);
         next(error);
     }
 };
