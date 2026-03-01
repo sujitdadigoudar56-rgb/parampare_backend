@@ -5,9 +5,7 @@ import {
   getAddresses,
   addAddress,
   updateAddress,
-  deleteAddress,
-  getWishlist,
-  toggleWishlist
+  deleteAddress
 } from './user.controller';
 import { protect } from '../../core/middleware/auth.middleware';
 
@@ -25,8 +23,5 @@ router.route('/addresses')
 router.route('/addresses/:id')
   .put(updateAddress as any)
   .delete(deleteAddress as any);
-
-router.get('/wishlist', getWishlist as any);
-router.post('/wishlist/:productId', toggleWishlist as any);
 
 export default router;

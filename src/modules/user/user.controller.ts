@@ -86,27 +86,3 @@ export const deleteAddress = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
-
-// @desc    Get wishlist
-// @route   GET /api/user/wishlist
-// @access  Private
-export const getWishlist = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const wishlist = await userService.getWishlist(req.user!._id.toString());
-        res.status(HTTP_STATUS.OK).json({ success: true, count: wishlist.length, data: wishlist });
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @desc    Toggle wishlist item
-// @route   POST /api/user/wishlist/:productId
-// @access  Private
-export const toggleWishlist = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const wishlist = await userService.toggleWishlist(req.user!._id.toString(), req.params.productId as string);
-        res.status(HTTP_STATUS.OK).json({ success: true, data: wishlist });
-    } catch (error) {
-        next(error);
-    }
-};
