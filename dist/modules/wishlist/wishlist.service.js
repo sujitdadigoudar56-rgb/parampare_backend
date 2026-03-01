@@ -8,43 +8,50 @@ const wishlist_model_1 = __importDefault(require("./wishlist.model"));
 class WishlistService {
     async getWishlist(userId) {
         const wishlist = await wishlist_model_1.default.findOne({ user: userId }).populate('items.product');
-        return (wishlist === null || wishlist === void 0 ? void 0 : wishlist.items) || [];
+        if (!wishlist)
+            return [];
+        // Filter out items where product no longer exists in DB
+        return wishlist.items.filter((i) => i.product);
     }
     async addToWishlist(userId, productId) {
         let wishlist = await wishlist_model_1.default.findOne({ user: userId });
         if (!wishlist) {
             wishlist = await wishlist_model_1.default.create({ user: userId, items: [] });
         }
-        const already = wishlist.items.some((i) => i.product.toString() === productId);
+        const already = wishlist.items.some((i) => i.product && i.product.toString() === productId);
         if (!already) {
             wishlist.items.push({ product: productId });
             await wishlist.save();
         }
-        return (await wishlist.populate('items.product')).items;
+        const populated = await wishlist.populate('items.product');
+        return populated.items.filter((i) => i.product);
     }
     async removeFromWishlist(userId, productId) {
         const wishlist = await wishlist_model_1.default.findOne({ user: userId });
         if (!wishlist)
             return [];
-        wishlist.items = wishlist.items.filter((i) => i.product.toString() !== productId);
+        wishlist.items = wishlist.items.filter((i) => i.product && i.product.toString() !== productId);
         await wishlist.save();
-        return (await wishlist.populate('items.product')).items;
+        const populated = await wishlist.populate('items.product');
+        return populated.items.filter((i) => i.product);
     }
     async toggleWishlist(userId, productId) {
         let wishlist = await wishlist_model_1.default.findOne({ user: userId });
         if (!wishlist) {
             wishlist = await wishlist_model_1.default.create({ user: userId, items: [] });
         }
-        const idx = wishlist.items.findIndex((i) => i.product.toString() === productId);
+        const idx = wishlist.items.findIndex((i) => i.product && i.product.toString() === productId);
         if (idx > -1) {
             wishlist.items.splice(idx, 1);
             await wishlist.save();
-            return { added: false, items: (await wishlist.populate('items.product')).items };
+            const populated = await wishlist.populate('items.product');
+            return { added: false, items: populated.items.filter((i) => i.product) };
         }
         else {
             wishlist.items.push({ product: productId });
             await wishlist.save();
-            return { added: true, items: (await wishlist.populate('items.product')).items };
+            const populated = await wishlist.populate('items.product');
+            return { added: true, items: populated.items.filter((i) => i.product) };
         }
     }
 }

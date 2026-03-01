@@ -14,10 +14,10 @@ const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
 // Middleware
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:5174', 'http://127.0.0.1:8080', 'http://127.0.0.1:5173'],
+    origin: true, // Allow all origins during integration to prevent CORS blocks
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -26,9 +26,16 @@ const path_1 = __importDefault(require("path"));
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
 // Routes
 app.use('/api', routes_1.default);
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+// Root endpoint for deployment verification
+app.get('/', (req, res) => {
+    res.status(200).json({
+        message: 'Welcome to Parampara API',
+        health: '/health',
+        api: '/api'
+    });
 });
 // Error handling middleware
 app.use((err, req, res, next) => {

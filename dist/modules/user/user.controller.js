@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toggleWishlist = exports.getWishlist = exports.deleteAddress = exports.updateAddress = exports.addAddress = exports.getAddresses = exports.updateProfile = exports.getProfile = void 0;
+exports.deleteAddress = exports.updateAddress = exports.addAddress = exports.getAddresses = exports.updateProfile = exports.getProfile = void 0;
 const user_service_1 = require("./user.service");
 const auth_service_1 = require("../auth/auth.service");
 const http_constants_1 = require("../../shared/constants/http.constants");
@@ -123,29 +123,3 @@ const deleteAddress = async (req, res, next) => {
     }
 };
 exports.deleteAddress = deleteAddress;
-// @desc    Get wishlist
-// @route   GET /api/user/wishlist
-// @access  Private
-const getWishlist = async (req, res, next) => {
-    try {
-        const wishlist = await user_service_1.userService.getWishlist(req.user._id.toString());
-        res.status(http_constants_1.HTTP_STATUS.OK).json({ success: true, count: wishlist.length, data: wishlist });
-    }
-    catch (error) {
-        next(error);
-    }
-};
-exports.getWishlist = getWishlist;
-// @desc    Toggle wishlist item
-// @route   POST /api/user/wishlist/:productId
-// @access  Private
-const toggleWishlist = async (req, res, next) => {
-    try {
-        const wishlist = await user_service_1.userService.toggleWishlist(req.user._id.toString(), req.params.productId);
-        res.status(http_constants_1.HTTP_STATUS.OK).json({ success: true, data: wishlist });
-    }
-    catch (error) {
-        next(error);
-    }
-};
-exports.toggleWishlist = toggleWishlist;

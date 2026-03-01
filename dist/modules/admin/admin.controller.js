@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserStatus = exports.getAllUsers = exports.getDashboardStats = exports.deleteProductAdmin = exports.updateProductAdmin = exports.createProduct = exports.uploadImages = void 0;
+exports.updateUserStatus = exports.getUserById = exports.getAllUsers = exports.getDashboardStats = exports.deleteProductAdmin = exports.updateProductAdmin = exports.createProduct = exports.uploadImages = void 0;
 const order_model_1 = __importDefault(require("../order/order.model"));
 const product_model_1 = __importDefault(require("../product/product.model"));
 const user_model_1 = __importDefault(require("../user/user.model"));
@@ -114,10 +114,19 @@ exports.getDashboardStats = getDashboardStats;
 // @access  Private/Admin
 const getAllUsers = async (req, res, next) => {
     try {
-        const users = await user_model_1.default.find().sort({ createdAt: -1 });
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const count = await user_model_1.default.countDocuments();
+        const users = await user_model_1.default.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
         res.status(http_constants_1.HTTP_STATUS.OK).json({
             success: true,
-            count: users.length,
+            count,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page,
             data: users
         });
     }
@@ -126,6 +135,25 @@ const getAllUsers = async (req, res, next) => {
     }
 };
 exports.getAllUsers = getAllUsers;
+// @desc    Get single user (Admin)
+// @route   GET /api/admin/users/:id
+// @access  Private/Admin
+const getUserById = async (req, res, next) => {
+    try {
+        console.log(`GET /api/admin/users/${req.params.id} hit`);
+        const user = await user_model_1.default.findById(req.params.id);
+        if (!user) {
+            console.log(`User ${req.params.id} not found`);
+            return res.status(http_constants_1.HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'User not found' });
+        }
+        res.status(http_constants_1.HTTP_STATUS.OK).json({ success: true, data: user });
+    }
+    catch (error) {
+        console.error(`Error in getUserById:`, error);
+        next(error);
+    }
+};
+exports.getUserById = getUserById;
 // @desc    Update user status (Admin)
 // @route   PATCH /api/admin/users/:id/status
 // @access  Private/Admin

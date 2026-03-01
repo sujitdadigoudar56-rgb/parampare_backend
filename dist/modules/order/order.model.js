@@ -55,6 +55,15 @@ const orderSchema = new mongoose_1.Schema({
         default: 'Order Confirmed',
     },
     paymentMethod: { type: String, default: 'Pay on Delivery' },
+    paymentStatus: {
+        type: String,
+        enum: ['Pending', 'Paid', 'Failed'],
+        default: 'Pending',
+    },
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
+    razorpaySignature: { type: String },
+    razorpayResponse: { type: mongoose_1.Schema.Types.Mixed },
     shippingAddress: {
         fullName: { type: String, required: true },
         mobile: { type: String, required: true },

@@ -13,6 +13,4 @@ router.route('/addresses')
 router.route('/addresses/:id')
     .put(user_controller_1.updateAddress)
     .delete(user_controller_1.deleteAddress);
-router.get('/wishlist', user_controller_1.getWishlist);
-router.post('/wishlist/:productId', user_controller_1.toggleWishlist);
 exports.default = router;

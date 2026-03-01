@@ -14,7 +14,7 @@ const razorpay = new Razorpay({
 // @access  Private
 export const createRazorpayOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { amount, currency = 'INR', receipt } = req.body;
+    const { amount, currency = 'INR', receipt, dbOrderId } = req.body;
 
     if (!amount) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -31,6 +31,13 @@ export const createRazorpayOrder = async (req: Request, res: Response, next: Nex
 
     const order = await razorpay.orders.create(options);
 
+    // If dbOrderId is provided, update the order in database with razorpayOrderId
+    if (dbOrderId) {
+      await Order.findByIdAndUpdate(dbOrderId, {
+        razorpayOrderId: order.id,
+      });
+    }
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: order,
@@ -46,13 +53,6 @@ export const createRazorpayOrder = async (req: Request, res: Response, next: Nex
 export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, dbOrderId } = req.body;
-
-    if (!dbOrderId) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "dbOrderId (Internal Order ID) is required",
-      });
-    }
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -77,17 +77,32 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       }
 
       // Update order in database
-      const order = await Order.findByIdAndUpdate(
-        dbOrderId,
-        {
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          razorpaySignature: razorpay_signature,
-          razorpayResponse: razorpayFullResponse,
-          paymentStatus: 'Paid',
-        },
-        { new: true }
-      );
+      let order;
+      if (dbOrderId) {
+        order = await Order.findByIdAndUpdate(
+          dbOrderId,
+          {
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+            razorpayResponse: razorpayFullResponse,
+            paymentStatus: 'Paid',
+          },
+          { new: true }
+        );
+      } else {
+        // Fallback: try to find by razorpay_order_id if dbOrderId is not provided
+        order = await Order.findOneAndUpdate(
+          { razorpayOrderId: razorpay_order_id },
+          {
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+            razorpayResponse: razorpayFullResponse,
+            paymentStatus: 'Paid',
+          },
+          { new: true }
+        );
+      }
 
       if (!order) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -103,7 +118,11 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
       });
     } else {
       // Optionally mark as failed
-      await Order.findByIdAndUpdate(dbOrderId, { paymentStatus: 'Failed' });
+      if (dbOrderId) {
+        await Order.findByIdAndUpdate(dbOrderId, { paymentStatus: 'Failed' });
+      } else {
+        await Order.findOneAndUpdate({ razorpayOrderId: razorpay_order_id }, { paymentStatus: 'Failed' });
+      }
 
       res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,

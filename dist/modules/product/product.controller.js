@@ -24,8 +24,10 @@ exports.getProducts = getProducts;
 // @access  Public
 const getProduct = async (req, res, next) => {
     try {
+        console.log(`GET product ${req.params.id} hit`);
         const product = await product_service_1.productService.findById(req.params.id);
         if (!product) {
+            console.log(`Product ${req.params.id} not found`);
             return res.status(http_constants_1.HTTP_STATUS.NOT_FOUND).json({
                 success: false,
                 message: http_constants_1.HTTP_MESSAGES.NOT_FOUND,
@@ -37,6 +39,7 @@ const getProduct = async (req, res, next) => {
         });
     }
     catch (error) {
+        console.error(`Error in getProduct:`, error);
         next(error);
     }
 };

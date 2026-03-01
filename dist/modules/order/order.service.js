@@ -42,8 +42,24 @@ class OrderService {
         return await order_model_1.default.findOne({ _id: orderId, user: userId });
     }
     // All orders (admin)
-    async getAllOrders() {
-        return await order_model_1.default.find().populate('user', 'fullName email mobile').sort({ createdAt: -1 });
+    async getAllOrders(page = 1, limit = 10) {
+        const skip = (page - 1) * limit;
+        const count = await order_model_1.default.countDocuments();
+        const orders = await order_model_1.default.find()
+            .populate('user', 'fullName email mobile')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+        return {
+            orders,
+            count,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page
+        };
+    }
+    // Get single order (admin - no user check)
+    async getOrderByIdAdmin(orderId) {
+        return await order_model_1.default.findById(orderId).populate('user', 'fullName email mobile');
     }
     // Update status (admin)
     async updateOrderStatus(orderId, status) {
