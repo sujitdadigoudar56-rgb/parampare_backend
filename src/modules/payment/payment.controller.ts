@@ -14,7 +14,7 @@ const razorpay = new Razorpay({
 // @access  Private
 export const createRazorpayOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { amount, currency = 'INR', receipt, dbOrderId } = req.body;
+    const { amount, currency = 'INR', receipt, orderId } = req.body;
 
     if (!amount) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -26,14 +26,14 @@ export const createRazorpayOrder = async (req: Request, res: Response, next: Nex
     const options = {
       amount: amount * 100, // amount in the smallest currency unit (paise for INR)
       currency,
-      receipt: receipt || `receipt_${Date.now()}`,
+      receipt: orderId || receipt || `receipt_${Date.now()}`,
     };
 
     const order = await razorpay.orders.create(options);
 
-    // If dbOrderId is provided, update the order in database with razorpayOrderId
-    if (dbOrderId) {
-      await Order.findByIdAndUpdate(dbOrderId, {
+    // If orderId (Mongo ID) is provided, update the order in database with razorpayOrderId immediately
+    if (orderId) {
+      await Order.findByIdAndUpdate(orderId, {
         razorpayOrderId: order.id,
       });
     }
@@ -52,7 +52,7 @@ export const createRazorpayOrder = async (req: Request, res: Response, next: Nex
 // @access  Private
 export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, dbOrderId } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
@@ -73,35 +73,21 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
         }
       } catch (fetchError) {
         console.error('Error fetching Razorpay payment details:', fetchError);
-        // Continue with req.body if fetch fails, so we don't break the flow
       }
 
-      // Update order in database
-      let order;
-      if (dbOrderId) {
-        order = await Order.findByIdAndUpdate(
-          dbOrderId,
-          {
-            razorpayOrderId: razorpay_order_id,
-            razorpayPaymentId: razorpay_payment_id,
-            razorpaySignature: razorpay_signature,
-            razorpayResponse: razorpayFullResponse,
-            paymentStatus: 'Paid',
-          },
-          { new: true }
-        );
-      } else {
-        // Fallback: try to find by razorpay_order_id if dbOrderId is not provided
-        order = await Order.findOneAndUpdate(
-          { razorpayOrderId: razorpay_order_id },
-          {
-            razorpayPaymentId: razorpay_payment_id,
-            razorpaySignature: razorpay_signature,
-            razorpayResponse: razorpayFullResponse,
-            paymentStatus: 'Paid',
-          },
-          { new: true }
-        );
+      // Find the order by razorpay_order_id
+      let order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
+
+      // Fallback: If order not found by razorpayOrderId, fetch Razorpay order details to get 'receipt' (Mongo Order ID)
+      if (!order) {
+        try {
+          const rzOrder = await razorpay.orders.fetch(razorpay_order_id);
+          if (rzOrder && rzOrder.receipt && rzOrder.receipt.match(/^[0-9a-fA-F]{24}$/)) {
+            order = await Order.findById(rzOrder.receipt);
+          }
+        } catch (fetchOrderError) {
+          console.error('Error fetching Razorpay order details:', fetchOrderError);
+        }
       }
 
       if (!order) {
@@ -111,17 +97,25 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
         });
       }
 
+      // Update order with payment details
+      order.razorpayOrderId = razorpay_order_id;
+      order.razorpayPaymentId = razorpay_payment_id;
+      order.razorpaySignature = razorpay_signature;
+      order.razorpayResponse = razorpayFullResponse;
+      order.paymentStatus = 'Paid';
+      await order.save();
+
       res.status(HTTP_STATUS.OK).json({
         success: true,
-        message: "Payment verified and full details saved successfully",
+        message: "Payment verified and order updated successfully",
         data: order,
       });
     } else {
-      // Optionally mark as failed
-      if (dbOrderId) {
-        await Order.findByIdAndUpdate(dbOrderId, { paymentStatus: 'Failed' });
-      } else {
-        await Order.findOneAndUpdate({ razorpayOrderId: razorpay_order_id }, { paymentStatus: 'Failed' });
+      // Payment failed verification
+      const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
+      if (order) {
+        order.paymentStatus = 'Failed';
+        await order.save();
       }
 
       res.status(HTTP_STATUS.BAD_REQUEST).json({
