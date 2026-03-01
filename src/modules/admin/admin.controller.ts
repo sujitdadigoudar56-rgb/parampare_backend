@@ -110,13 +110,42 @@ export const getDashboardStats = async (req: Request, res: Response, next: NextF
 // @access  Private/Admin
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const count = await User.countDocuments();
+    const users = await User.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
-      count: users.length,
+      count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
       data: users
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get single user (Admin)
+// @route   GET /api/admin/users/:id
+// @access  Private/Admin
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log(`GET /api/admin/users/${req.params.id} hit`);
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      console.log(`User ${req.params.id} not found`);
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'User not found' });
+    }
+    res.status(HTTP_STATUS.OK).json({ success: true, data: user });
+  } catch (error) {
+    console.error(`Error in getUserById:`, error);
     next(error);
   }
 };

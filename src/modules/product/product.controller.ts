@@ -22,8 +22,10 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
 // @access  Public
 export const getProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(`GET product ${req.params.id} hit`);
     const product = await productService.findById(req.params.id as string);
     if (!product) {
+      console.log(`Product ${req.params.id} not found`);
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         success: false,
         message: HTTP_MESSAGES.NOT_FOUND,
@@ -34,6 +36,7 @@ export const getProduct = async (req: Request, res: Response, next: NextFunction
       data: product,
     });
   } catch (error) {
+    console.error(`Error in getProduct:`, error);
     next(error);
   }
 };

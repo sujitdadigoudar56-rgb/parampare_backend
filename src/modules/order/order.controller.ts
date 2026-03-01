@@ -37,9 +37,27 @@ export const getOrderById = async (req: Request, res: Response, next: NextFuncti
 // GET /api/orders/admin/all — admin: get all orders
 export const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const orders = await orderService.getAllOrders();
-    res.status(HTTP_STATUS.OK).json({ success: true, data: orders });
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const result = await orderService.getAllOrders(page, limit);
+    res.status(HTTP_STATUS.OK).json({ success: true, ...result });
   } catch (error) { next(error); }
+};
+
+// GET /api/orders/admin/:id — admin: get single order
+export const getOrderByIdAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log(`GET /api/admin/orders/${req.params.id} hit`);
+    const order = await orderService.getOrderByIdAdmin(String(req.params.id));
+    if (!order) {
+      console.log(`Order ${req.params.id} not found`);
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: 'Order not found' });
+    }
+    res.status(HTTP_STATUS.OK).json({ success: true, data: order });
+  } catch (error) {
+    console.error(`Error in getOrderByIdAdmin:`, error);
+    next(error);
+  }
 };
 
 // PATCH /api/orders/:id/status — admin
