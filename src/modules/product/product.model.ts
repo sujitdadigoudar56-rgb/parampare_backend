@@ -22,6 +22,7 @@ export interface IProduct extends Document {
   stockQuantity: number;
   rating: number;
   reviewCount: number;
+  reviewDescription?: string;
   badges: string[];
   deliveryTimeDays: string;
   createdAt: Date;
@@ -94,6 +95,10 @@ const productSchema = new Schema(
     reviewCount: {
       type: Number,
       default: 0,
+    },
+    reviewDescription: {
+      type: String,
+      default: "Authentic craftsmanship and beautiful drape. Highly recommended!",
     },
     badges: {
       type: [String],
