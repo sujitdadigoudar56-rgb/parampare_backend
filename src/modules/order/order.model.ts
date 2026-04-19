@@ -16,7 +16,7 @@ export interface IShippingAddress {
   city: string;
   state: string;
   pincode: string;
-  landmark: string;
+  landmark?: string;
   alternatePhone?: string;
 }
 
@@ -80,7 +80,7 @@ const orderSchema = new Schema(
       city: { type: String, required: true },
       state: { type: String, required: true },
       pincode: { type: String, required: true },
-      landmark: { type: String, required: true },
+      landmark: { type: String },
       alternatePhone: { type: String },
     },
     estimatedDelivery: { type: Date },
