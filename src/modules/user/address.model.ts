@@ -10,6 +10,7 @@ export interface IAddress extends Document {
   state: string;
   pincode: string;
   landmark?: string;
+  alternatePhone?: string;
   isDefault: boolean;
 }
 
@@ -28,6 +29,7 @@ const addressSchema = new Schema(
     state: { type: String, required: true },
     pincode: { type: String, required: true },
     landmark: { type: String },
+    alternatePhone: { type: String },
     isDefault: { type: Boolean, default: false },
   },
   { timestamps: true }
