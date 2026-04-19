@@ -4,6 +4,7 @@ export interface ICategory extends Document {
   name: string;
   slug: string;
   description?: string;
+  imageUrl?: string;
   parent?: mongoose.Types.ObjectId;
   level: number;
 }
@@ -23,6 +24,9 @@ const categorySchema = new Schema(
       lowercase: true,
     },
     description: {
+      type: String,
+    },
+    imageUrl: {
       type: String,
     },
     parent: {
