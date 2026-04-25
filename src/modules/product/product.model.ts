@@ -10,13 +10,13 @@ export interface IProduct extends Document {
   subcategory?: mongoose.Types.ObjectId;
   attributes: Record<string, any>;
   // Saree specific attributes
-  fabric?: string;
-  color?: string;
-  occasion?: string;
-  weave?: string;
-  border?: string;
-  pallu?: string;
-  blouse?: string;
+  fabric?: string[];
+  color?: string[];
+  occasion?: string[];
+  weave?: string[];
+  border?: string[];
+  pallu?: string[];
+  blouse?: string[];
   careInstructions: string[];
   inStock: boolean;
   stockQuantity: number;
@@ -68,13 +68,13 @@ const productSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
-    fabric: { type: String },
-    color: { type: String },
-    occasion: { type: String },
-    weave: { type: String },
-    border: { type: String },
-    pallu: { type: String },
-    blouse: { type: String },
+    fabric: { type: [String], default: [] },
+    color: { type: [String], default: [] },
+    occasion: { type: [String], default: [] },
+    weave: { type: [String], default: [] },
+    border: { type: [String], default: [] },
+    pallu: { type: [String], default: [] },
+    blouse: { type: [String], default: [] },
     careInstructions: {
       type: [String],
       default: [],

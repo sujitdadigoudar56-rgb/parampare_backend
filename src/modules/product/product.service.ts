@@ -42,13 +42,13 @@ export class ProductService {
         filter.name = { $regex: search, $options: 'i' };
     }
     
-    // Add additional filters
-    if (fabric) filter.fabric = fabric;
-    if (occasion) filter.occasion = occasion;
-    if (color) filter.color = color;
-    if (weave) filter.weave = weave;
-    if (border) filter.border = border;
-    if (pallu) filter.pallu = pallu;
+    // Add additional filters with array support ($in)
+    const attributes = ['fabric', 'occasion', 'color', 'weave', 'border', 'pallu'];
+    attributes.forEach(attr => {
+      if (query[attr]) {
+        filter[attr] = Array.isArray(query[attr]) ? { $in: query[attr] } : query[attr];
+      }
+    });
     
     // Sort logic
     let sortOption: any = { createdAt: -1 }; // Default: Newest first
