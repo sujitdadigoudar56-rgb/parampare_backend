@@ -132,3 +132,4 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
 // Keeping register/login implementations if needed for backward compatibility or admin, 
 // but commenting them out or removing to enforce OTP flow as per request
 // ...
+//
