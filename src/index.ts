@@ -35,11 +35,30 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
-  res.status(500).json({
+
+  // Mongoose CastError (invalid ObjectId)
+  if (err.name === 'CastError') {
+    return res.status(400).json({ success: false, message: `Invalid ${err.path}: ${err.value}` });
+  }
+
+  // Mongoose ValidationError
+  if (err.name === 'ValidationError') {
+    const messages = Object.values(err.errors).map((e: any) => e.message);
+    return res.status(400).json({ success: false, message: messages.join(', ') });
+  }
+
+  // MongoDB duplicate key error
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0];
+    return res.status(400).json({ success: false, message: `${field} already exists` });
+  }
+
+  const statusCode = err.statusCode || err.status || 500;
+  res.status(statusCode).json({
     success: false,
-    message: 'Something went wrong!',
+    message: err.message || 'Something went wrong!',
     error: process.env.NODE_ENV === 'staging' ? err.message : {}
   });
 });

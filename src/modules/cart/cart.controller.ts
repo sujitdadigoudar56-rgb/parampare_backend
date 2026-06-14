@@ -20,6 +20,9 @@ export const getCart = async (req: Request, res: Response, next: NextFunction) =
 export const addToCart = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { productId, quantity } = req.body;
+        if (!productId) {
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'productId is required' });
+        }
         const cart = await cartService.addToCart(req.user!._id.toString(), productId, quantity || 1);
         res.status(HTTP_STATUS.OK).json({ success: true, data: cart });
     } catch (error) {
