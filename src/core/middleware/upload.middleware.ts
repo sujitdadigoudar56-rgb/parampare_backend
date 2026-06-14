@@ -2,7 +2,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const UPLOADS_DIR = path.join(__dirname, '../../../../uploads/products');
+// /tmp is the only writable directory in serverless environments (Vercel, AWS Lambda)
+const LOCAL_UPLOADS_DIR = process.env.VERCEL ? '/tmp/uploads/products' : path.join(__dirname, '../../../../uploads/products');
 
 const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -21,7 +22,6 @@ const buildStorage = () => {
   const region = process.env.REGION || 'ap-south-1';
 
   if (keyId && secret && bucket) {
-    // Use S3
     const { S3Client } = require('@aws-sdk/client-s3');
     const multerS3Mod = require('multer-s3');
     const multerS3fn = multerS3Mod.default ?? multerS3Mod;
@@ -44,11 +44,13 @@ const buildStorage = () => {
     });
   }
 
-  // Fallback: local disk
+  // Fallback: local disk (mkdirSync is lazy — runs per request, not at module load)
   console.log('[upload] AWS credentials not found — using local disk storage');
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
   return multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+    destination: (_req, _file, cb) => {
+      fs.mkdirSync(LOCAL_UPLOADS_DIR, { recursive: true });
+      cb(null, LOCAL_UPLOADS_DIR);
+    },
     filename: (_req, file, cb) => {
       const ext = path.extname(file.originalname);
       cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
