@@ -3,10 +3,15 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { HTTP_STATUS } from '../../shared/constants/http.constants';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY!,
-  key_secret: process.env.RAZORPAY_SECRATE!, // Using the variable name with typo as found in .env
-});
+const getRazorpay = () => {
+  if (!process.env.RAZORPAY_KEY || !process.env.RAZORPAY_SECRATE) {
+    throw new Error('Razorpay credentials are not configured');
+  }
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY,
+    key_secret: process.env.RAZORPAY_SECRATE,
+  });
+};
 
 // @desc    Create Razorpay Order
 // @route   POST /api/payment/create-order
@@ -23,12 +28,12 @@ export const createRazorpayOrder = async (req: Request, res: Response, next: Nex
     }
 
     const options = {
-      amount: amount * 100, // amount in the smallest currency unit (paise for INR)
+      amount: amount * 100,
       currency,
       receipt: receipt || `receipt_${Date.now()}`,
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpay().orders.create(options);
 
     res.status(HTTP_STATUS.OK).json({
       success: true,
