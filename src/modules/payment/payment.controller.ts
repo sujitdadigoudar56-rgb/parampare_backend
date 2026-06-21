@@ -1,77 +1,67 @@
 import { Request, Response, NextFunction } from 'express';
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
+import { paymentService } from './payment.service';
 import { HTTP_STATUS } from '../../shared/constants/http.constants';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY!,
-  key_secret: process.env.RAZORPAY_SECRATE!, // Using the variable name with typo as found in .env
-});
-
-// @desc    Create Razorpay Order
+// @desc    Create a Razorpay order (linked to a pending order in our DB)
 // @route   POST /api/payment/create-order
 // @access  Private
 export const createRazorpayOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { amount, currency = 'INR', receipt } = req.body;
+    const { items, shippingAddress } = req.body;
 
-    if (!amount) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: 'Amount is required',
-      });
+    if (!items || items.length === 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'No items in order' });
+    }
+    if (!shippingAddress) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Shipping address is required' });
     }
 
-    const options = {
-      amount: amount * 100, // amount in the smallest currency unit (paise for INR)
-      currency,
-      receipt: receipt || `receipt_${Date.now()}`,
-    };
+    const result = await paymentService.createOrder((req as any).user.id, { items, shippingAddress });
 
-    const order = await razorpay.orders.create(options);
-
-    res.status(HTTP_STATUS.OK).json({
-      success: true,
-      data: order,
-    });
+    res.status(HTTP_STATUS.OK).json({ success: true, data: result });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Verify Razorpay Payment
+// @desc    Verify a Razorpay payment and persist its status
 // @route   POST /api/payment/verify
 // @access  Private
 export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
-    console.log('Verification Body:', body);
+    const result = await paymentService.verifyPayment((req as any).user.id, {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    });
 
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_SECRATE!)
-      .update(body.toString())
-      .digest("hex");
-    
-    console.log('Expected Signature:', expectedSignature);
-    console.log('Received Signature:', razorpay_signature);
-
-    const isAuthentic = expectedSignature === razorpay_signature;
-
-    if (isAuthentic) {
-      // Payment is verified
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
-        message: "Payment verified successfully",
-      });
-    } else {
-      res.status(HTTP_STATUS.BAD_REQUEST).json({
-        success: false,
-        message: "Invalid signature, payment verification failed",
-      });
-    }
+    res.status(result.code).json({
+      success: result.success,
+      message: result.message,
+      data: result.order,
+    });
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    Razorpay webhook — async source of truth for payment status
+// @route   POST /api/payment/webhook
+// @access  Public (verified via X-Razorpay-Signature)
+export const razorpayWebhook = async (req: Request, res: Response) => {
+  try {
+    const signature = req.headers['x-razorpay-signature'] as string | undefined;
+    // rawBody is captured in index.ts via the express.json verify hook.
+    const rawBody = (req as any).rawBody ?? JSON.stringify(req.body);
+
+    const result = await paymentService.handleWebhook(rawBody, signature);
+
+    res.status(result.code).json({ success: result.success, message: result.message });
+  } catch (error) {
+    // Always 200/4xx fast; log the rest so Razorpay does not hammer retries forever.
+    console.error('Razorpay webhook error:', error);
+    res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Webhook handling failed' });
   }
 };

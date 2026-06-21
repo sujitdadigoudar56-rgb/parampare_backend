@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { createRazorpayOrder, verifyPayment } from './payment.controller';
+import { createRazorpayOrder, verifyPayment, razorpayWebhook } from './payment.controller';
 import { protect } from '../../core/middleware/auth.middleware';
 
 const router = Router();
 
-// All payment routes are protected
-router.use(protect as any);
+// Public — Razorpay calls this directly; authenticated via X-Razorpay-Signature.
+router.post('/webhook', razorpayWebhook as any);
 
-router.post('/create-order', createRazorpayOrder as any);
-router.post('/verify', verifyPayment as any);
+// Authenticated payment routes
+router.post('/create-order', protect as any, createRazorpayOrder as any);
+router.post('/verify', protect as any, verifyPayment as any);
 
 export default router;

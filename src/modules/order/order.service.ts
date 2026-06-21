@@ -1,16 +1,27 @@
 import Order from './order.model';
 import Cart from '../cart/cart.model';
 
+export type OrderItemInput = { productId: string; name: string; image: string; quantity: number; price: number };
+
+// Single source of truth for pricing — keep in sync with the frontend checkout summary.
+export const FREE_DELIVERY_THRESHOLD = 2999;
+export const DELIVERY_CHARGE = 20;
+
+export const computeOrderAmounts = (items: OrderItemInput[]) => {
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const deliveryCharge = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_CHARGE;
+  const totalAmount = subtotal + deliveryCharge;
+  return { subtotal, deliveryCharge, totalAmount };
+};
+
 export class OrderService {
-  // Place a new order — auto-clears cart
+  // Place a new order — auto-clears cart (used for COD / Pay on Delivery)
   async createOrder(userId: string, data: {
-    items: { productId: string; name: string; image: string; quantity: number; price: number }[];
+    items: OrderItemInput[];
     shippingAddress: any;
     paymentMethod?: string;
   }) {
-    const subtotal = data.items.reduce((s, i) => s + i.price * i.quantity, 0);
-    const deliveryCharge = subtotal >= 999 ? 0 : 99;
-    const totalAmount = subtotal + deliveryCharge;
+    const { subtotal, deliveryCharge, totalAmount } = computeOrderAmounts(data.items);
     const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const order = await Order.create({
@@ -34,6 +45,35 @@ export class OrderService {
     await Cart.findOneAndDelete({ user: userId as any });
 
     return order;
+  }
+
+  // Create an unpaid online order up-front so the Razorpay order id can be linked
+  // to it. The cart is cleared only once the payment is verified (see PaymentService).
+  async createPendingOnlineOrder(userId: string, data: {
+    items: OrderItemInput[];
+    shippingAddress: any;
+  }) {
+    const { subtotal, deliveryCharge, totalAmount } = computeOrderAmounts(data.items);
+    const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    return await Order.create({
+      user: userId,
+      items: data.items.map(i => ({
+        product: i.productId as any,
+        name: i.name,
+        image: i.image,
+        quantity: i.quantity,
+        price: i.price,
+      })),
+      subtotal,
+      deliveryCharge,
+      totalAmount,
+      shippingAddress: data.shippingAddress,
+      paymentMethod: 'Online Payment',
+      status: 'Payment Pending',
+      paymentStatus: 'Created',
+      estimatedDelivery,
+    });
   }
 
   // Get all orders for a user

@@ -27,13 +27,36 @@ export interface IOrder extends Document {
   subtotal: number;
   deliveryCharge: number;
   totalAmount: number;
-  status: 'Order Confirmed' | 'Processing' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+  status:
+    | 'Payment Pending'
+    | 'Payment Failed'
+    | 'Order Confirmed'
+    | 'Processing'
+    | 'Shipped'
+    | 'Out for Delivery'
+    | 'Delivered'
+    | 'Cancelled';
   paymentMethod: string;
-  paymentStatus: 'Pending' | 'Paid' | 'Failed';
+  // Mirrors the Razorpay payment lifecycle so the DB is always the source of truth.
+  paymentStatus:
+    | 'Created'
+    | 'Pending'
+    | 'Attempted'
+    | 'Authorized'
+    | 'Paid'
+    | 'Failed'
+    | 'Refunded'
+    | 'Partially Refunded';
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
   razorpayResponse?: any;
+  // Append-only audit log — every Razorpay event/object we receive is kept here.
+  razorpayEvents?: { event: string; status?: string; entity?: any; receivedAt: Date }[];
+  amountPaid?: number;
+  amountRefunded?: number;
+  paidAt?: Date;
+  refundedAt?: Date;
   shippingAddress: IShippingAddress;
   estimatedDelivery: Date;
   trackingNumber?: string;
@@ -59,19 +82,41 @@ const orderSchema = new Schema(
     totalAmount: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'],
+      enum: [
+        'Payment Pending',
+        'Payment Failed',
+        'Order Confirmed',
+        'Processing',
+        'Shipped',
+        'Out for Delivery',
+        'Delivered',
+        'Cancelled',
+      ],
       default: 'Order Confirmed',
     },
     paymentMethod: { type: String, default: 'Pay on Delivery' },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed'],
+      enum: ['Created', 'Pending', 'Attempted', 'Authorized', 'Paid', 'Failed', 'Refunded', 'Partially Refunded'],
       default: 'Pending',
     },
-    razorpayOrderId: { type: String },
+    razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
     razorpaySignature: { type: String },
     razorpayResponse: { type: Schema.Types.Mixed },
+    razorpayEvents: [
+      {
+        _id: false,
+        event: { type: String },
+        status: { type: String },
+        entity: { type: Schema.Types.Mixed },
+        receivedAt: { type: Date, default: Date.now },
+      },
+    ],
+    amountPaid: { type: Number, default: 0 },
+    amountRefunded: { type: Number, default: 0 },
+    paidAt: { type: Date },
+    refundedAt: { type: Date },
     shippingAddress: {
       fullName: { type: String, required: true },
       mobile: { type: String, required: true },
