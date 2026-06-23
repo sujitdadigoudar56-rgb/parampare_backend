@@ -9,6 +9,35 @@ import appRouter from './routes';
 
 const app: Application = express();
 
+// Connect to MongoDB — cache the promise so concurrent requests/serverless
+// invocations reuse a single connection attempt instead of racing.
+let connPromise: Promise<typeof mongoose> | null = null;
+const connectDB = async (): Promise<void> => {
+  // 1 = connected. Already good, nothing to do.
+  if (mongoose.connection.readyState === 1) return;
+  if (!connPromise) {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    connPromise = mongoose
+      .connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      })
+      .then((m) => {
+        console.log('Connected to MongoDB');
+        return m;
+      })
+      .catch((err) => {
+        // Reset so the next request can retry instead of being stuck on a
+        // permanently-rejected promise.
+        connPromise = null;
+        throw err;
+      });
+  }
+  await connPromise;
+};
+
 // Middleware
 app.use(cors({
   origin: true,
@@ -26,6 +55,22 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true }));
+
+// Ensure the DB is connected before any API request runs. This prevents
+// Mongoose from buffering queries (and the "buffering timed out" error) when
+// a request arrives before the initial connection has been established.
+app.use('/api', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err: any) {
+    res.status(503).json({
+      success: false,
+      message: 'Database connection failed',
+      error: err.message,
+    });
+  }
+});
 
 // Routes
 app.use('/api', appRouter);
@@ -71,25 +116,12 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Connect to MongoDB — reuse connection across serverless invocations
-const connectDB = async () => {
-  if (mongoose.connection.readyState === 0) {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI environment variable is not set');
-    }
-    await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-    });
-    console.log('Connected to MongoDB');
-  }
-};
-
-connectDB().catch((err) => console.error('MongoDB connection error:', err.message));
-
-// Start HTTP server only outside Vercel (Vercel sets VERCEL=1 automatically)
+// Start HTTP server only outside Vercel (Vercel sets VERCEL=1 automatically).
+// Kick off the connection eagerly so the cluster is warm before the first
+// request, but don't crash if it isn't ready yet — the /api gate will await it.
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5001;
+  connectDB().catch((err) => console.error('MongoDB connection error:', err.message));
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
