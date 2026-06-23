@@ -7,19 +7,29 @@ import { HTTP_STATUS } from '../../shared/constants/http.constants';
 // @access  Private
 export const createRazorpayOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { items, shippingAddress } = req.body;
+    const { orderId, items, shippingAddress } = req.body;
+    const userId = (req as any).user.id;
 
-    if (!items || items.length === 0) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'No items in order' });
+    let result;
+    if (orderId) {
+      // Order already created in our DB — just open Razorpay checkout for it.
+      result = await paymentService.createOrderForExistingOrder(userId, orderId);
+    } else {
+      // Inline flow — create the order from items + address, then a Razorpay order.
+      if (!items || items.length === 0) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'No items in order' });
+      }
+      if (!shippingAddress) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Shipping address is required' });
+      }
+      result = await paymentService.createOrder(userId, { items, shippingAddress });
     }
-    if (!shippingAddress) {
-      return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'Shipping address is required' });
-    }
-
-    const result = await paymentService.createOrder((req as any).user.id, { items, shippingAddress });
 
     res.status(HTTP_STATUS.OK).json({ success: true, data: result });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'Order not found') {
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ success: false, message: error.message });
+    }
     next(error);
   }
 };

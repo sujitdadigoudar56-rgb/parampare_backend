@@ -1,5 +1,6 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import Order, { IOrder } from '../order/order.model';
 import Cart from '../cart/cart.model';
 import { orderService, OrderItemInput } from '../order/order.service';
@@ -101,6 +102,37 @@ export class PaymentService {
       keyId: RAZORPAY_KEY_ID,
       orderId: String(order._id),
       razorpayOrder, // contains id, amount, currency, status, ...
+    };
+  }
+
+  /**
+   * Create a Razorpay order for an order that already exists in our DB.
+   * Used when the frontend creates the order first (POST /api/orders) and then
+   * only passes the orderId to start payment.
+   */
+  async createOrderForExistingOrder(userId: string, orderId: string) {
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      throw new Error('Order not found');
+    }
+
+    const order = await Order.findOne({ _id: orderId, user: userId as any });
+    if (!order) throw new Error('Order not found');
+
+    const razorpayOrder = await getRazorpay().orders.create({
+      amount: Math.round(order.totalAmount * 100), // paise
+      currency: 'INR',
+      receipt: order.orderId || String(order._id),
+      notes: { orderId: String(order._id), userId },
+    });
+
+    order.razorpayOrderId = razorpayOrder.id;
+    order.paymentStatus = mapOrderStatus(razorpayOrder.status);
+    await order.save();
+
+    return {
+      keyId: RAZORPAY_KEY_ID,
+      orderId: String(order._id),
+      razorpayOrder,
     };
   }
 
